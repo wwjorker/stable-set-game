@@ -1,0 +1,6 @@
+rank,name,wins,games_played,win_rate,weights
+1,Parity-Heavy,125,200,0.625,"{'move_parity': 3.0, 'move_count': 1.0}"
+2,Move-Count,108,200,0.54,{'move_count': 1.0}
+3,Balanced,92,200,0.46,"{'move_count': 1.0, 'move_parity': 1.0, 'degree_sum': 0.3, 'blocked_ratio': 0.5}"
+4,Blocker,89,200,0.445,"{'blocked_ratio': 2.0, 'move_count': 1.0}"
+5,Degree-Aware,86,200,0.43,"{'degree_sum': 1.0, 'move_count': 0.5}"
