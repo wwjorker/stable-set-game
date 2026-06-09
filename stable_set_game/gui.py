@@ -421,17 +421,18 @@ def main() -> None:
     print("  4. Star graph S_n")
     print("  5. Random (Erdos-Renyi) G(n, 0.4)")
     print("  6. Random d-regular (d=3)")
+    print("  7. Fork graph F_n (path of length n with a fork at the end)")
     print()
 
     try:
-        choice = input("Choose graph type [1-6, default=1]: ").strip() or "1"
+        choice = input("Choose graph type [1-7, default=1]: ").strip() or "1"
         n = int(input("Number of vertices n [default=7]: ").strip() or "7")
     except (ValueError, EOFError):
         choice, n = "1", 7
 
     from stable_set_game.generators import (
         path_graph, cycle_graph, complete_graph, star_graph,
-        erdos_renyi_graph, random_regular_graph,
+        erdos_renyi_graph, random_regular_graph, fork_graph,
     )
 
     # For random_regular: ensure n*d is even by making n even when d=3
@@ -446,6 +447,7 @@ def main() -> None:
         "4": ("Star", lambda: star_graph(max(n, 1))),
         "5": ("Erdos-Renyi", lambda: erdos_renyi_graph(max(n, 2), 0.4, seed=42)),
         "6": ("3-Regular", _build_regular),
+        "7": ("Fork", lambda: fork_graph(max(n, 3))),
     }
 
     graph_name, builder = graph_builders.get(choice, graph_builders["1"])
