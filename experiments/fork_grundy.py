@@ -31,19 +31,28 @@ periodic patterns detected in the sequence.
 
 from __future__ import annotations
 
+import csv
 import sys
 import time
 from pathlib import Path
-from typing import Dict, FrozenSet
+from typing import Dict, FrozenSet, List
 
 # Allow running as a script from the project root.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import matplotlib
+matplotlib.use("Agg")  # headless — save PNGs only
+import matplotlib.pyplot as plt
 import networkx as nx
 
 from stable_set_game.generators import fork_graph
+
+
+# Output directory (shared with the other experiments).
+RESULTS_DIR = Path(__file__).resolve().parent / "results"
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ======================================================================
@@ -133,6 +142,69 @@ def longest_periodic_suffix(
 
 
 # ======================================================================
+# Output: CSV + chart
+# ======================================================================
+
+def _save_csv(rows: List[Dict]) -> None:
+    """Write the per-graph Grundy results to fork_grundy.csv."""
+    csv_path = RESULTS_DIR / "fork_grundy.csv"
+    fieldnames = ["n", "num_vertices", "num_edges", "grundy_value", "winner"]
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"Saved: {csv_path}")
+
+
+def _chart_fork_grundy(rows: List[Dict]) -> None:
+    """Bar chart of Grundy values for F_n, colour-coded by winner.
+
+    Blue bars = first player wins (Grundy > 0, N-position);
+    red bars  = second player wins (Grundy = 0, P-position).  Because
+    P-positions have Grundy value 0 their bars have zero height, so we
+    also place a small red marker on the axis to keep them visible.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+
+    ns = [r["n"] for r in rows]
+    grundy = [r["grundy_value"] for r in rows]
+    colours = ["#1E88E5" if g > 0 else "#E53935" for g in grundy]
+
+    bars = ax.bar(ns, grundy, color=colours, edgecolor="black")
+
+    # Annotate each bar with its Grundy value.
+    for bar, g in zip(bars, grundy):
+        ax.text(bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.05,
+                str(g), ha="center", fontsize=8)
+
+    # Keep zero-height (P2-win) bars visible with a red marker at y=0.
+    p2_ns = [n for n, g in zip(ns, grundy) if g == 0]
+    if p2_ns:
+        ax.scatter(p2_ns, [0] * len(p2_ns), color="#E53935",
+                   marker="v", s=40, zorder=3)
+
+    ax.set_xlabel("n  (fork graph F_n)")
+    ax.set_ylabel("Grundy value  g(F_n)")
+    ax.set_title("Sprague–Grundy values of fork graphs F_n")
+    ax.set_xticks(ns)
+    ax.grid(axis="y", alpha=0.3)
+
+    from matplotlib.patches import Patch
+    legend = [
+        Patch(color="#1E88E5", label="P1 wins (g > 0, N-position)"),
+        Patch(color="#E53935", label="P2 wins (g = 0, P-position)"),
+    ]
+    ax.legend(handles=legend, loc="upper right")
+
+    fig.tight_layout()
+    png_path = RESULTS_DIR / "fork_grundy.png"
+    fig.savefig(png_path, dpi=120)
+    plt.close(fig)
+    print(f"Saved: {png_path}")
+
+
+# ======================================================================
 # Driver
 # ======================================================================
 
@@ -151,6 +223,7 @@ def main() -> None:
     print("-" * 58)
 
     values: list[int] = []
+    rows: List[Dict] = []
     last_n = 2
     for n in range(3, MAX_N + 1):
         g = fork_graph(n)
@@ -162,6 +235,13 @@ def main() -> None:
         values.append(gv)
         last_n = n
         winner = "P1 (N)" if gv > 0 else "P2 (P)"
+        rows.append({
+            "n": n,
+            "num_vertices": g.number_of_nodes(),
+            "num_edges": g.number_of_edges(),
+            "grundy_value": gv,
+            "winner": "P1" if gv > 0 else "P2",
+        })
         print(
             f"{n:>3} {g.number_of_nodes():>4} {g.number_of_edges():>4} "
             f"{gv:>8} {winner:>8} {len(memo):>12} {elapsed:>9.3f}",
@@ -171,6 +251,10 @@ def main() -> None:
             print(f"\n[stopping: F_{n} took {elapsed:.1f} s, "
                   f"exceeds {PER_GRAPH_TIME_BUDGET:.0f} s budget]")
             break
+
+    # Persist results to CSV + PNG (matching the other experiments).
+    _save_csv(rows)
+    _chart_fork_grundy(rows)
 
     print()
     print(f"Grundy sequence (n = 3 … {last_n}):")

@@ -79,6 +79,7 @@ pytest
 | 2 | Which evaluation-function weights play best? | Round-robin tournament of 5 weight configurations on random graphs. |
 | 3 | Does the AI agree with theory? | Exact minimax winner vs Sprague–Grundy prediction on paths `P_n` and cycles `C_n`. |
 | 4 | How close does optimal play get to the maximum independent set? | Compare the played stable-set size to the exact MIS. |
+| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Exact memoised Grundy computation for `F_3 … F_30` (`fork_grundy.py`). |
 
 Experiment 3 is the **correctness anchor**: agreement between the AI's exact
 solver and the independently computed Grundy values validates the engine and
