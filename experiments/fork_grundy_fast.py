@@ -310,7 +310,8 @@ def _chart_extended(ks: List[int], grundy: List[int]) -> None:
 # Driver
 # ======================================================================
 
-MAX_K = 500
+MAX_K = 2000
+CHART_MAX_K = 500  # the strip chart stays readable; CSV covers the full range
 
 
 def main() -> None:
@@ -362,7 +363,9 @@ def main() -> None:
     # --- Step 5: save outputs -----------------------------------------
     print()
     _save_csv(rows)
-    _chart_extended(ks, grundy)
+    # Chart only up to CHART_MAX_K — 2000 points would be unreadable.
+    chart_ks = [k for k in ks if k <= CHART_MAX_K]
+    _chart_extended(chart_ks, grundy[: len(chart_ks)])
 
     # --- Step 4: report -----------------------------------------------
     p2_wins = [k for k, g in zip(ks, grundy) if g == 0]
