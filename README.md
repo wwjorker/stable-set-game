@@ -28,7 +28,8 @@ stable_set_game/        Core library
 
 experiments/            Dissertation experiments
 ├── run_experiments.py  Experiments 1–4 (data + charts to results/)
-├── fork_grundy.py      Exact Grundy analysis of fork graphs F_n
+├── fork_grundy.py      Brute-force Grundy analysis of fork graphs F_n (≤ F_30)
+├── fork_grundy_fast.py Recurrence-based Grundy values for F_n (to F_500+)
 └── results/            Generated CSV data and PNG charts
 
 tests/                  Unit tests (pytest) covering every module
@@ -79,7 +80,7 @@ pytest
 | 2 | Which evaluation-function weights play best? | Round-robin tournament of 5 weight configurations on random graphs. |
 | 3 | Does the AI agree with theory? | Exact minimax winner vs Sprague–Grundy prediction on paths `P_n` and cycles `C_n`. |
 | 4 | How close does optimal play get to the maximum independent set? | Compare the played stable-set size to the exact MIS. |
-| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Exact memoised Grundy computation for `F_3 … F_30` (`fork_grundy.py`). |
+| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Brute force (`fork_grundy.py`, ≤ F_30) and a fast Sprague–Grundy recurrence (`fork_grundy_fast.py`, to F_500+). The recurrence is validated to match brute force exactly on F_3–F_30, then shows the sequence is **eventually periodic with period 34** (so P2 wins recur indefinitely, e.g. F_34, F_39, …). |
 
 Experiment 3 is the **correctness anchor**: agreement between the AI's exact
 solver and the independently computed Grundy values validates the engine and
