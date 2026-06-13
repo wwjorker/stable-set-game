@@ -197,6 +197,10 @@ def experiment_2_parameter_tuning(
         ("Balanced",
          {"move_count": 1.0, "move_parity": 1.0,
           "degree_sum": 0.3, "blocked_ratio": 0.5}),
+        ("Component-Aware", {"component_count": 2.0, "move_count": 1.0}),
+        ("Balanced-Five",
+         {"move_count": 1.0, "move_parity": 1.0, "degree_sum": 1.0,
+          "blocked_ratio": 1.0, "component_count": 1.0}),
     ]
 
     players = [
