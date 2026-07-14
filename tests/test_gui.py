@@ -270,6 +270,22 @@ class TestUndo:
         assert len(path5_hva.game.history) == 0
         assert path5_hva.game.current_player == 1
 
+    def test_undo_as_player_two_returns_to_human_turn(self):
+        gui = GameGUI(
+            nx.path_graph(5), mode="human_vs_ai", human_player=2,
+        )
+        _setup_fig(gui)
+        gui.game.make_move(0)  # AI opening
+
+        gui._undo()
+        assert gui.game.history == [(1, 0)]
+
+        gui.game.make_move(2)  # human response
+        gui._undo()
+        assert gui.game.history == [(1, 0)]
+        assert gui.game.current_player == 2
+        assert gui._is_human(gui.game.current_player)
+
     def test_undo_on_empty_does_nothing(self, path5_hvh):
         _setup_fig(path5_hvh)
         path5_hvh._undo()  # should not raise

@@ -438,10 +438,20 @@ class GameGUI:
         if not self.game.history:
             return
 
-        if self.mode == "human_vs_ai" and len(self.game.history) >= 2:
-            # Undo both the AI's move and the human's previous move
+        if (
+            self.mode == "human_vs_ai"
+            and self.human_player == 2
+            and len(self.game.history) < 2
+        ):
+            # The AI's opening move alone cannot be undone without leaving
+            # the game on an AI turn that will not automatically restart.
+            return
+
+        if self.mode == "human_vs_ai":
+            # Roll back only as far as the most recent human decision point.
             self.game.undo_move()
-            self.game.undo_move()
+            while self.game.history and self.game.current_player != self.human_player:
+                self.game.undo_move()
         else:
             self.game.undo_move()
 

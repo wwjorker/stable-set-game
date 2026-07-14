@@ -7,6 +7,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from stable_set_game.desktop_gui import (
@@ -81,6 +82,33 @@ def test_setup_defaults(app):
     page.close()
 
 
+def test_three_regular_selection_normalises_default_size(app):
+    page = SetupPage()
+    page.graph_buttons["3-Regular"].click()
+    assert page.current_config().n == 8
+    assert page.error_label.text() == ""
+    assert page.preview_name.text().startswith("3-Regular")
+    assert page.preview_canvas.graph.number_of_edges() == 12
+    page.close()
+
+
+def test_invalid_size_clears_stale_preview(app):
+    page = SetupPage()
+    page.graph_buttons["3-Regular"].click()
+    page.n_spin.setValue(7)
+    assert "even n" in page.error_label.text()
+    assert page.preview_name.text() == "3-Regular"
+    assert page.preview_canvas.graph is None
+    page.close()
+
+
+def test_human_vs_human_hides_ai_depth(app):
+    page = SetupPage()
+    page.mode_buttons["human_vs_human"].click()
+    assert page.depth_box.isHidden()
+    page.close()
+
+
 def test_erdos_renyi_probability_is_configurable(app):
     page = SetupPage()
     page.graph_buttons["Erdos-Renyi"].click()
@@ -150,6 +178,42 @@ def test_human_side_mapping(app):
     assert page._ai_for(1) is page.ai1
     assert page._ai_for(2) is None
     page.close()
+
+
+def test_player_two_undo_returns_to_human_decision(app):
+    page = GamePage()
+    page.start_game(
+        DesktopConfig(
+            graph_type="Path", n=7, mode="human_vs_ai", human_player=2, depth=2
+        )
+    )
+    page.game.make_move(0)  # AI opening
+    page.game.make_move(2)  # human response
+    page.refresh()
+
+    page.undo()
+
+    assert page.game.history == [(1, 0)]
+    assert page.game.current_player == 2
+    assert page._is_human(page.game.current_player)
+    page.deactivate()
+    page.close()
+
+
+def test_returning_to_setup_cancels_pending_ai_start(app):
+    window = MainWindow()
+    window.start_game(
+        DesktopConfig(
+            graph_type="Path", n=9, mode="human_vs_ai", human_player=2, depth=2
+        )
+    )
+    window.show_setup()
+    QTest.qWait(250)
+
+    assert window.stack.currentWidget() is window.setup_page
+    assert window.game_page.game.history == []
+    assert not window.game_page.busy
+    window.close()
 
 
 def test_ai_vs_ai_uses_step_control(app):

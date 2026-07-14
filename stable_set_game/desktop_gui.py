@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, cast
 
 import networkx as nx
 from PySide6.QtCore import QObject, QPointF, QRunnable, QSize, Qt, QThreadPool, QTimer, Signal
@@ -54,8 +54,8 @@ GRAPH_INFO = {
     "Cycle": ("Cycle", "A closed ring", "Cₙ"),
     "Complete": ("Complete", "Every pair is connected", "Kₙ"),
     "Star": ("Star", "One centre with n leaves", "Sₙ"),
-    "Erdos-Renyi": ("Erdős–Rényi", "Random edges, configurable p", "G(n,p)"),
-    "3-Regular": ("3-Regular", "Every vertex has degree three", "G₃"),
+    "Erdos-Renyi": ("Erdős–Rényi", "Random edges (choose p)", "G(n,p)"),
+    "3-Regular": ("3-Regular", "Degree 3 at every vertex", "G₃"),
     "Fork": ("Fork", "A path with a two-prong fork", "Fₙ"),
 }
 
@@ -171,6 +171,7 @@ class ChoiceButton(QPushButton):
         self.setCheckable(True)
         self.setObjectName("choiceCard")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(f"{title}: {subtitle}")
         self.setMinimumHeight(60)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
@@ -200,6 +201,14 @@ class GraphCanvas(QWidget):
         self.positions = graph_positions(self.graph, layout_kind)
         self.game = None
         self.hover_node = None
+        self.update()
+
+    def clear_graph(self, message: str = "Adjust the parameters to preview this graph") -> None:
+        self.graph = None
+        self.game = None
+        self.positions = {}
+        self.hover_node = None
+        self.empty_message = message
         self.update()
 
     def set_game(self, game: StableSetGame, layout_kind: str) -> None:
@@ -310,7 +319,9 @@ class GraphCanvas(QWidget):
             y = (self.height() - box_height) / 2
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor("#FFFFFF"))
-            painter.drawRoundedRect(x, y, box_width, box_height, 12, 12)
+            painter.drawRoundedRect(
+                int(x), int(y), box_width, box_height, 12.0, 12.0
+            )
             painter.setPen(QColor("#0F172A"))
             painter.setFont(QFont("Segoe UI", 11, QFont.Weight.DemiBold))
             painter.drawText(
@@ -441,26 +452,26 @@ class SetupPage(QWidget):
         graph_grid.setHorizontalSpacing(10)
         graph_grid.setVerticalSpacing(10)
         for index, (key, (title_text, subtitle_text, _symbol)) in enumerate(GRAPH_INFO.items()):
-            button = ChoiceButton(title_text, subtitle_text)
-            self.graph_group.addButton(button)
-            self.graph_buttons[key] = button
+            graph_button = ChoiceButton(title_text, subtitle_text)
+            self.graph_group.addButton(graph_button)
+            self.graph_buttons[key] = graph_button
             row, column = divmod(index, 3)
             if index == len(GRAPH_INFO) - 1:
-                graph_grid.addWidget(button, row, 0, 1, 3)
+                graph_grid.addWidget(graph_button, row, 0, 1, 3)
             else:
-                graph_grid.addWidget(button, row, column)
+                graph_grid.addWidget(graph_button, row, column)
         setup_layout.addLayout(graph_grid)
 
         setup_layout.addWidget(self._label("2  Game mode"))
         mode_row = QHBoxLayout()
         mode_row.setSpacing(8)
         for key, label in MODE_LABELS.items():
-            button = QPushButton(label)
-            button.setCheckable(True)
-            button.setObjectName("segmentButton")
-            self.mode_group.addButton(button)
-            self.mode_buttons[key] = button
-            mode_row.addWidget(button)
+            mode_button = QPushButton(label)
+            mode_button.setCheckable(True)
+            mode_button.setObjectName("segmentButton")
+            self.mode_group.addButton(mode_button)
+            self.mode_buttons[key] = mode_button
+            mode_row.addWidget(mode_button)
         setup_layout.addLayout(mode_row)
 
         self.side_container = QWidget()
@@ -471,23 +482,27 @@ class SetupPage(QWidget):
         side_row = QHBoxLayout()
         side_row.setSpacing(8)
         for player, label in ((1, "Player 1 · moves first"), (2, "Player 2 · moves second")):
-            button = QPushButton(label)
-            button.setCheckable(True)
-            button.setObjectName("optionButton")
-            self.side_group.addButton(button)
-            self.side_buttons[player] = button
-            side_row.addWidget(button)
+            side_button = QPushButton(label)
+            side_button.setCheckable(True)
+            side_button.setObjectName("optionButton")
+            self.side_group.addButton(side_button)
+            self.side_buttons[player] = side_button
+            side_row.addWidget(side_button)
         side_layout.addLayout(side_row)
         setup_layout.addWidget(self.side_container)
 
         setup_layout.addWidget(self._label("3  Parameters"))
         parameter_row = QHBoxLayout()
         parameter_row.setSpacing(12)
-        n_box, self.n_spin = self._spin_card("Graph size", 1, 60, 7)
-        depth_box, self.depth_spin = self._spin_card("AI search depth", 1, 12, 5)
+        self.n_box, self.n_spin, self.n_parameter_label = self._spin_card(
+            "Vertices n", 1, 60, 7
+        )
+        self.depth_box, self.depth_spin, _depth_label = self._spin_card(
+            "AI depth", 1, 12, 5
+        )
         self.probability_box, self.probability_spin = self._probability_card()
-        parameter_row.addWidget(n_box)
-        parameter_row.addWidget(depth_box)
+        parameter_row.addWidget(self.n_box)
+        parameter_row.addWidget(self.depth_box)
         parameter_row.addWidget(self.probability_box)
         setup_layout.addLayout(parameter_row)
 
@@ -582,7 +597,7 @@ class SetupPage(QWidget):
         layout.addWidget(label)
         layout.addStretch()
         layout.addWidget(spin)
-        return frame, spin
+        return frame, spin, label
 
     @staticmethod
     def _probability_card():
@@ -590,7 +605,7 @@ class SetupPage(QWidget):
         frame.setObjectName("parameterCard")
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(14, 10, 12, 10)
-        label = QLabel("Edge probability p")
+        label = QLabel("Probability p")
         label.setObjectName("parameterLabel")
         spin = QDoubleSpinBox()
         spin.setRange(0.0, 1.0)
@@ -620,16 +635,39 @@ class SetupPage(QWidget):
         return frame, value_label
 
     def _connect(self) -> None:
-        for button in self.graph_buttons.values():
-            button.toggled.connect(self._update_preview)
-        for button in self.mode_buttons.values():
-            button.toggled.connect(self._on_mode_changed)
-        for button in self.side_buttons.values():
-            button.toggled.connect(self._update_preview)
+        for graph_button in self.graph_buttons.values():
+            graph_button.toggled.connect(self._on_graph_changed)
+        for mode_button in self.mode_buttons.values():
+            mode_button.toggled.connect(self._on_mode_changed)
+        for side_button in self.side_buttons.values():
+            side_button.toggled.connect(self._update_preview)
         self.n_spin.valueChanged.connect(self._update_preview)
         self.depth_spin.valueChanged.connect(self._update_preview)
         self.probability_spin.valueChanged.connect(self._update_preview)
         self.start_button.clicked.connect(self._start)
+
+    def _on_graph_changed(self, _checked: bool = False) -> None:
+        if not any(button.isChecked() for button in self.graph_buttons.values()):
+            return
+        graph_type = self._selected_graph_type()
+        minimums = {"Path": 2, "Cycle": 3, "3-Regular": 4, "Fork": 3}
+        minimum = minimums.get(graph_type, 1)
+        value = max(self.n_spin.value(), minimum)
+        if graph_type == "3-Regular" and value % 2:
+            value += 1
+
+        if value != self.n_spin.value():
+            self.n_spin.blockSignals(True)
+            self.n_spin.setValue(value)
+            self.n_spin.blockSignals(False)
+        self.n_spin.setSingleStep(2 if graph_type == "3-Regular" else 1)
+
+        size_labels = {
+            "Star": "Leaves n",
+            "Fork": "Path length n",
+        }
+        self.n_parameter_label.setText(size_labels.get(graph_type, "Vertices n"))
+        self._update_preview()
 
     def _selected_graph_type(self) -> str:
         return next(key for key, button in self.graph_buttons.items() if button.isChecked())
@@ -656,7 +694,9 @@ class SetupPage(QWidget):
     def _on_mode_changed(self) -> None:
         if not any(button.isChecked() for button in self.mode_buttons.values()):
             return
-        self.side_container.setVisible(self._selected_mode() == "human_vs_ai")
+        mode = self._selected_mode()
+        self.side_container.setVisible(mode == "human_vs_ai")
+        self.depth_box.setVisible(mode != "human_vs_human")
         self._update_preview()
 
     def _update_preview(self) -> None:
@@ -670,6 +710,14 @@ class SetupPage(QWidget):
             graph, name, layout_kind = build_desktop_graph(config)
         except ValueError as exc:
             self.error_label.setText(str(exc))
+            graph_type = self._selected_graph_type()
+            title, _description, symbol = GRAPH_INFO[graph_type]
+            self.preview_symbol.setText(symbol)
+            self.preview_name.setText(title)
+            self.preview_description.setText(str(exc))
+            self.preview_canvas.clear_graph()
+            self.nodes_metric[1].setText("—")
+            self.edges_metric[1].setText("—")
             return
 
         self.error_label.setText("")
@@ -699,24 +747,25 @@ class SetupPage(QWidget):
 
 
 class WorkerSignals(QObject):
-    result = Signal(object)
-    error = Signal(str)
+    result = Signal(int, object)
+    error = Signal(int, str)
 
 
 class AIWorker(QRunnable):
-    def __init__(self, ai: AIPlayer, game: StableSetGame) -> None:
+    def __init__(self, ai: AIPlayer, game: StableSetGame, session_id: int) -> None:
         super().__init__()
         self.ai = ai
         self.game = game.copy()
+        self.session_id = session_id
         self.signals = WorkerSignals()
 
     def run(self) -> None:
         try:
             result = self.ai.choose_move(self.game)
         except Exception as exc:  # surface worker failures in the GUI
-            self.signals.error.emit(str(exc))
+            self.signals.error.emit(self.session_id, str(exc))
             return
-        self.signals.result.emit(result)
+        self.signals.result.emit(self.session_id, result)
 
 
 class GamePage(QWidget):
@@ -733,6 +782,10 @@ class GamePage(QWidget):
         self.busy = False
         self.thread_pool = QThreadPool.globalInstance()
         self._worker: Optional[AIWorker] = None
+        self._session_id = 0
+        self.ai_timer = QTimer(self)
+        self.ai_timer.setSingleShot(True)
+        self.ai_timer.timeout.connect(self._maybe_start_ai)
         self._build()
 
     def _build(self) -> None:
@@ -910,6 +963,9 @@ class GamePage(QWidget):
         return frame, value_label
 
     def start_game(self, config: DesktopConfig) -> None:
+        self.ai_timer.stop()
+        self._session_id += 1
+        self._worker = None
         self.config = config
         graph, self.graph_name, self.layout_kind = build_desktop_graph(config)
         self.game = StableSetGame(graph)
@@ -922,9 +978,10 @@ class GamePage(QWidget):
             f"{graph.number_of_edges()} edges"
         )
         self.next_button.setVisible(config.mode == "ai_vs_ai")
+        self.depth_value[0].setVisible(config.mode != "human_vs_human")
         self._set_busy(False)
         self.refresh()
-        QTimer.singleShot(120, self._maybe_start_ai)
+        self._schedule_ai(120)
 
     def _is_human(self, player: int) -> bool:
         if self.config is None:
@@ -951,7 +1008,11 @@ class GamePage(QWidget):
             return
         self.game.make_move(vertex)
         self.refresh()
-        QTimer.singleShot(100, self._maybe_start_ai)
+        self._schedule_ai(100)
+
+    def _schedule_ai(self, delay_ms: int) -> None:
+        self.ai_timer.stop()
+        self.ai_timer.start(delay_ms)
 
     def _maybe_start_ai(self) -> None:
         if self.busy or self.game is None or self.game.is_game_over():
@@ -977,13 +1038,15 @@ class GamePage(QWidget):
             return
         self._set_busy(True)
         self.refresh()
-        worker = AIWorker(ai, self.game)
+        worker = AIWorker(ai, self.game, self._session_id)
         worker.signals.result.connect(self._on_ai_result)
         worker.signals.error.connect(self._on_ai_error)
         self._worker = worker
         self.thread_pool.start(worker)
 
-    def _on_ai_result(self, result: SearchResult) -> None:
+    def _on_ai_result(self, session_id: int, result: SearchResult) -> None:
+        if session_id != self._session_id:
+            return
         if self.game is not None and result.best_move is not None and not self.game.is_game_over():
             self.game.make_move(result.best_move)
         self.ai_stats.setText(
@@ -994,7 +1057,9 @@ class GamePage(QWidget):
         self._set_busy(False)
         self.refresh()
 
-    def _on_ai_error(self, message: str) -> None:
+    def _on_ai_error(self, session_id: int, message: str) -> None:
+        if session_id != self._session_id:
+            return
         self._worker = None
         self._set_busy(False)
         QMessageBox.critical(self, "AI search failed", message)
@@ -1074,9 +1139,17 @@ class GamePage(QWidget):
     def undo(self) -> None:
         if self.busy or self.game is None or not self.game.history:
             return
-        if self.config is not None and self.config.mode == "human_vs_ai" and len(self.game.history) >= 2:
+        if (
+            self.config is not None
+            and self.config.mode == "human_vs_ai"
+            and self.config.human_player == 2
+            and len(self.game.history) < 2
+        ):
+            return
+        if self.config is not None and self.config.mode == "human_vs_ai":
             self.game.undo_move()
-            self.game.undo_move()
+            while self.game.history and not self._is_human(self.game.current_player):
+                self.game.undo_move()
         else:
             self.game.undo_move()
         self.ai_stats.setText("The last move was undone.")
@@ -1086,6 +1159,13 @@ class GamePage(QWidget):
         if self.busy or self.config is None:
             return
         self.start_game(self.config)
+
+    def deactivate(self) -> None:
+        """Invalidate delayed/background work when leaving the game page."""
+        self.ai_timer.stop()
+        self._session_id += 1
+        self._worker = None
+        self._set_busy(False)
 
     def _back(self) -> None:
         if self.busy:
@@ -1113,6 +1193,7 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.game_page)
 
     def show_setup(self) -> None:
+        self.game_page.deactivate()
         self.stack.setCurrentWidget(self.setup_page)
 
 
@@ -1315,7 +1396,11 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 
 def main() -> None:
     owns_app = QApplication.instance() is None
-    app = QApplication.instance() or QApplication(sys.argv)
+    app = (
+        QApplication(sys.argv)
+        if owns_app
+        else cast(QApplication, QApplication.instance())
+    )
     app.setApplicationName("Stable Set Game")
     app.setOrganizationName("MSc Research Project")
     app.setStyle("Fusion")
