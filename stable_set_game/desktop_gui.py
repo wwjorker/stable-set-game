@@ -17,6 +17,7 @@ from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QDoubleSpinBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -53,7 +54,7 @@ GRAPH_INFO = {
     "Cycle": ("Cycle", "A closed ring", "Cₙ"),
     "Complete": ("Complete", "Every pair is connected", "Kₙ"),
     "Star": ("Star", "One centre with n leaves", "Sₙ"),
-    "Erdos-Renyi": ("Erdős–Rényi", "Random edges, p = 0.4", "G(n,p)"),
+    "Erdos-Renyi": ("Erdős–Rényi", "Random edges, configurable p", "G(n,p)"),
     "3-Regular": ("3-Regular", "Every vertex has degree three", "G₃"),
     "Fork": ("Fork", "A path with a two-prong fork", "Fₙ"),
 }
@@ -69,6 +70,7 @@ MODE_LABELS = {
 class DesktopConfig:
     graph_type: str = "Path"
     n: int = 7
+    probability: float = 0.4
     mode: str = "human_vs_ai"
     human_player: int = 1
     depth: int = 5
@@ -84,6 +86,8 @@ def build_desktop_graph(config: DesktopConfig) -> Tuple[nx.Graph, str, str]:
         raise ValueError("Human side must be Player 1 or Player 2.")
     if not 1 <= config.n <= 60:
         raise ValueError("Graph size must be between 1 and 60.")
+    if not 0.0 <= config.probability <= 1.0:
+        raise ValueError("Edge probability p must be between 0 and 1.")
     if not 1 <= config.depth <= 12:
         raise ValueError("AI search depth must be between 1 and 12.")
 
@@ -102,8 +106,8 @@ def build_desktop_graph(config: DesktopConfig) -> Tuple[nx.Graph, str, str]:
     if graph_type == "Star":
         return star_graph(n), f"Star S{n} ({n} leaves)", "star"
     if graph_type == "Erdos-Renyi":
-        graph = erdos_renyi_graph(n, 0.4, seed=42)
-        return graph, f"Erdős–Rényi G({n}, 0.4)", "spring"
+        graph = erdos_renyi_graph(n, config.probability, seed=42)
+        return graph, f"Erdős–Rényi G({n}, {config.probability:g})", "spring"
     if graph_type == "3-Regular":
         if n < 4 or n % 2:
             raise ValueError("A 3-regular graph requires an even n of at least 4.")
@@ -199,7 +203,13 @@ class GraphCanvas(QWidget):
         self.update()
 
     def set_game(self, game: StableSetGame, layout_kind: str) -> None:
-        graph_changed = self.graph is None or set(self.graph.nodes) != set(game.graph.nodes)
+        graph_changed = (
+            self.graph is None
+            or set(self.graph.nodes) != set(game.graph.nodes)
+            or {frozenset(edge) for edge in self.graph.edges}
+            != {frozenset(edge) for edge in game.graph.edges}
+            or self.layout_kind != layout_kind
+        )
         self.graph = game.graph
         self.layout_kind = layout_kind
         if graph_changed or not self.positions:
@@ -475,8 +485,10 @@ class SetupPage(QWidget):
         parameter_row.setSpacing(12)
         n_box, self.n_spin = self._spin_card("Graph size", 1, 60, 7)
         depth_box, self.depth_spin = self._spin_card("AI search depth", 1, 12, 5)
+        self.probability_box, self.probability_spin = self._probability_card()
         parameter_row.addWidget(n_box)
         parameter_row.addWidget(depth_box)
+        parameter_row.addWidget(self.probability_box)
         setup_layout.addLayout(parameter_row)
 
         self.error_label = QLabel("")
@@ -573,6 +585,26 @@ class SetupPage(QWidget):
         return frame, spin
 
     @staticmethod
+    def _probability_card():
+        frame = QFrame()
+        frame.setObjectName("parameterCard")
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(14, 10, 12, 10)
+        label = QLabel("Edge probability p")
+        label.setObjectName("parameterLabel")
+        spin = QDoubleSpinBox()
+        spin.setRange(0.0, 1.0)
+        spin.setSingleStep(0.05)
+        spin.setDecimals(2)
+        spin.setValue(0.4)
+        spin.setObjectName("numberInput")
+        spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+        layout.addStretch()
+        layout.addWidget(spin)
+        return frame, spin
+
+    @staticmethod
     def _metric(title: str, value: str):
         frame = QFrame()
         frame.setObjectName("metricCard")
@@ -596,6 +628,7 @@ class SetupPage(QWidget):
             button.toggled.connect(self._update_preview)
         self.n_spin.valueChanged.connect(self._update_preview)
         self.depth_spin.valueChanged.connect(self._update_preview)
+        self.probability_spin.valueChanged.connect(self._update_preview)
         self.start_button.clicked.connect(self._start)
 
     def _selected_graph_type(self) -> str:
@@ -614,6 +647,7 @@ class SetupPage(QWidget):
         return DesktopConfig(
             graph_type=self._selected_graph_type(),
             n=self.n_spin.value(),
+            probability=self.probability_spin.value(),
             mode=self._selected_mode(),
             human_player=self._selected_side(),
             depth=self.depth_spin.value(),
@@ -632,6 +666,7 @@ class SetupPage(QWidget):
             return
         try:
             config = self.current_config()
+            self.probability_box.setVisible(config.graph_type == "Erdos-Renyi")
             graph, name, layout_kind = build_desktop_graph(config)
         except ValueError as exc:
             self.error_label.setText(str(exc))
@@ -643,6 +678,8 @@ class SetupPage(QWidget):
         self.preview_symbol.setText(symbol)
         self.preview_name.setText(name)
         detail = description
+        if config.graph_type == "Erdos-Renyi":
+            detail = f"Random edges, p = {config.probability:g}."
         if config.graph_type in {"Erdos-Renyi", "3-Regular"}:
             detail += " A fixed seed keeps demonstrations reproducible."
         self.preview_description.setText(detail)
@@ -1183,7 +1220,7 @@ QLabel#parameterLabel {
     color: #475569;
     font-weight: 600;
 }
-QSpinBox#numberInput {
+QSpinBox#numberInput, QDoubleSpinBox#numberInput {
     min-width: 64px;
     min-height: 34px;
     border: 1px solid #CBD5E1;

@@ -11,12 +11,14 @@ from PySide6.QtWidgets import QApplication
 
 from stable_set_game.desktop_gui import (
     DesktopConfig,
+    GraphCanvas,
     GamePage,
     MainWindow,
     SetupPage,
     build_desktop_graph,
     graph_positions,
 )
+from stable_set_game.engine import StableSetGame
 
 
 @pytest.fixture(scope="module")
@@ -54,6 +56,8 @@ def test_build_all_graph_families(graph_type, n, expected_nodes):
         DesktopConfig(graph_type="3-Regular", n=5),
         DesktopConfig(graph_type="Fork", n=2),
         DesktopConfig(n=7, depth=13),
+        DesktopConfig(graph_type="Erdos-Renyi", probability=-0.01),
+        DesktopConfig(graph_type="Erdos-Renyi", probability=1.01),
     ],
 )
 def test_invalid_configs_are_rejected(config):
@@ -75,6 +79,37 @@ def test_setup_defaults(app):
     assert page.current_config() == DesktopConfig()
     assert page.preview_canvas.graph.number_of_nodes() == 7
     page.close()
+
+
+def test_erdos_renyi_probability_is_configurable(app):
+    page = SetupPage()
+    page.graph_buttons["Erdos-Renyi"].click()
+    page.probability_spin.setValue(0.65)
+    config = page.current_config()
+    graph, name, _layout = build_desktop_graph(config)
+    assert config.probability == 0.65
+    assert name == "Erdős–Rényi G(7, 0.65)"
+    assert page.probability_box.isHidden() is False
+    assert graph.number_of_edges() == 16
+    page.close()
+
+
+def test_canvas_recomputes_layout_when_edges_change_but_nodes_match(app):
+    canvas = GraphCanvas()
+    path_graph, _name, path_layout = build_desktop_graph(
+        DesktopConfig(graph_type="Path", n=7)
+    )
+    random_graph, _name, random_layout = build_desktop_graph(
+        DesktopConfig(graph_type="Erdos-Renyi", n=7)
+    )
+
+    canvas.set_game(StableSetGame(path_graph), path_layout)
+    path_positions = dict(canvas.positions)
+    canvas.set_game(StableSetGame(random_graph), random_layout)
+
+    assert canvas.positions == graph_positions(random_graph, random_layout)
+    assert canvas.positions != path_positions
+    canvas.close()
 
 
 def test_main_window_has_setup_and_game_pages(app):
