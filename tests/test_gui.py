@@ -16,7 +16,13 @@ import networkx as nx
 
 from stable_set_game.ai import AIPlayer
 from stable_set_game.engine import StableSetGame
-from stable_set_game.gui import GameGUI, _COLOURS
+from stable_set_game.gui import (
+    GameConfig,
+    GameGUI,
+    GameLauncher,
+    _COLOURS,
+    build_game_graph,
+)
 
 
 # ======================================================================
@@ -78,6 +84,54 @@ class TestInit:
     def test_positions_computed(self):
         gui = GameGUI(nx.path_graph(4), mode="human_vs_human")
         assert len(gui.pos) == 4
+
+
+# ======================================================================
+# Graphical setup screen and graph construction
+# ======================================================================
+
+class TestGameSetup:
+
+    @pytest.mark.parametrize(
+        "graph_type,n,expected_nodes",
+        [
+            ("Path", 7, 7),
+            ("Cycle", 7, 7),
+            ("Complete", 5, 5),
+            ("Star", 5, 6),
+            ("Erdos-Renyi", 8, 8),
+            ("3-Regular", 8, 8),
+            ("Fork", 7, 8),
+        ],
+    )
+    def test_builds_every_graph_type(self, graph_type, n, expected_nodes):
+        graph, label, layout = build_game_graph(
+            GameConfig(graph_type=graph_type, n=n)
+        )
+        assert graph.number_of_nodes() == expected_nodes
+        assert graph_type.split("-")[0] in label
+        assert layout in ("spring", "circular")
+
+    def test_rejects_invalid_regular_graph(self):
+        with pytest.raises(ValueError, match="even n"):
+            build_game_graph(GameConfig(graph_type="3-Regular", n=7))
+
+    def test_rejects_excessive_depth(self):
+        with pytest.raises(ValueError, match="depth"):
+            build_game_graph(GameConfig(depth=13))
+
+    def test_launcher_default_configuration(self):
+        launcher = GameLauncher()
+        launcher._build_screen()
+        config = launcher._selected_config()
+        assert config == GameConfig()
+
+    def test_visible_game_controls_created(self, path5_hvh):
+        path5_hvh.fig = plt.figure(figsize=(8, 6))
+        path5_hvh.ax = path5_hvh.fig.add_axes([0.05, 0.16, 0.90, 0.76])
+        path5_hvh._create_controls()
+        assert set(path5_hvh._buttons) == {"restart", "undo", "next", "quit"}
+        assert path5_hvh._buttons["next"].ax.get_visible() is False
 
 
 # ======================================================================
