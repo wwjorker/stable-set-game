@@ -1,7 +1,7 @@
 """
 Dissertation experiments for the Stable Set Game.
 
-Three experiments:
+Four experiments:
 
 Experiment 1 — Graph Selection
     For each combination of n in {10, 15, 20} and p in
@@ -9,16 +9,21 @@ Experiment 1 — Graph Selection
     sampled Erdős–Rényi graphs.  Report average game length and
     player-1 win rate.
 
-Experiment 2 — Self-play Parameter Tuning
-    Five AI configurations with different evaluation-function weights
-    compete in a round-robin tournament (50 games per pair) on a
-    single G(15, 0.3) graph.  Rank by overall win rate.
+Experiment 2 – Self-play Parameter Comparison
+    Seven AI configurations with different evaluation-function weights
+    compete in a round-robin tournament (50 games per pair).  Each game
+    uses a freshly sampled G(15, 0.3) graph, and first-move assignments
+    alternate across seeds.  Rank by observed win rate.
 
-Experiment 3 — Theory vs AI
+Experiment 3 – Theory vs AI
     Use exact minimax on path graphs P_3 … P_12 and cycle graphs
     C_3 … C_12 to determine the winner under optimal play.  Compare
     with the Grundy-theoretic prediction (computed independently via
     recursive Sprague–Grundy analysis on the engine).
+
+Experiment 4 – Stable Set Size vs Maximum Independent Set
+    Compare the terminal stable set produced by depth-3 play with the
+    exact maximum independent set on the Experiment 1 parameter grid.
 
 All raw data are saved to CSV in ``experiments/results/``; each
 experiment also produces a Matplotlib chart saved as a PNG.
@@ -176,7 +181,7 @@ def experiment_2_parameter_tuning(
     games_per_pair: int = 50,
     ai_depth: int = 3,
 ) -> Dict:
-    """Round-robin tournament of 5 evaluation configs on G(n, p).
+    """Round-robin tournament of 7 evaluation configs on G(n, p).
 
     Each of the ``games_per_pair`` games uses a freshly sampled
     G(n, p) with a different seed, so that the ranking reflects the
@@ -225,7 +230,7 @@ def experiment_2_parameter_tuning(
             p1, p2 = players[i], players[j]
             for k in range(games_per_pair):
                 graph = erdos_renyi_graph(n, p, seed=k)
-                # Alternate first mover to remove first-player advantage bias.
+                # Alternate first mover to balance the number of starts.
                 if k % 2 == 0:
                     first, second = p1, p2
                 else:
@@ -275,7 +280,7 @@ def experiment_2_parameter_tuning(
 
     # Chart
     _chart_experiment_2(rows)
-    return {"rows": rows, "tournament": result}
+    return {"rows": rows, "total_games": total_games, "elapsed": elapsed}
 
 
 def _chart_experiment_2(rows: List[Dict]) -> None:

@@ -23,16 +23,17 @@ stable_set_game/        Core library
 ├── ai.py               Minimax + alpha-beta AI player (AIPlayer)
 ├── generators.py       Graph factories (path, cycle, random, fork, star, ...)
 ├── self_play.py        Match / series / tournament framework
-├── gui.py              Interactive Matplotlib GUI (human/AI play)
+├── desktop_gui.py      Default PySide6 desktop application
+├── gui.py              Legacy Matplotlib GUI fallback
 └── __main__.py         Entry point for `python -m stable_set_game`
 
 experiments/            Dissertation experiments
 ├── run_experiments.py  Experiments 1–4 (data + charts to results/)
 ├── fork_grundy.py      Brute-force Grundy analysis of fork graphs F_n (≤ F_30)
-├── fork_grundy_fast.py Recurrence-based Grundy values for F_n (to F_500+)
+├── fork_grundy_fast.py Recurrence-based Grundy values for F_n (tested to F_2000)
 └── results/            Generated CSV data and PNG charts
 
-tests/                  Unit tests (pytest) covering every module
+tests/                  Unit tests (pytest), including both GUI front ends
 requirements.txt        Python dependencies
 ```
 
@@ -44,7 +45,7 @@ Requires Python 3.10+.
 pip install -r requirements.txt
 ```
 
-Dependencies: `networkx`, `matplotlib`, `numpy`, `pytest`.
+Dependencies: `networkx`, `matplotlib`, `numpy`, `pytest`, `PySide6`.
 
 ## Usage
 
@@ -54,10 +55,18 @@ Dependencies: `networkx`, `matplotlib`, `numpy`, `pytest`.
 python -m stable_set_game
 ```
 
-A menu lets you choose the graph type, size, game mode (Human vs Human,
-Human vs AI, AI vs AI) and AI search depth. In the window: **click** a green
-vertex to play, **R** to restart, **U** to undo, **Q** to quit (and **Space**
-to step in AI-vs-AI mode).
+The PySide6 desktop application provides a graphical setup page, live graph
+preview, three game modes (Human vs Human, Human vs AI, AI vs AI), a game
+status panel, move history, non-blocking AI search, undo/restart controls and
+step-by-step AI-vs-AI play. Click a green vertex to make a legal move.
+Erdős–Rényi graphs expose a configurable edge probability `p` in `[0, 1]`;
+the fixed demonstration seed keeps a selected `(n, p)` reproducible.
+
+The earlier lightweight Matplotlib interface is retained as a fallback:
+
+```bash
+python -m stable_set_game.gui
+```
 
 ### Run the experiments
 
@@ -77,14 +86,14 @@ pytest
 | # | Question | Method |
 |---|----------|--------|
 | 1 | How does graph density affect first-player win rate and game length? | AI-vs-AI on Erdős–Rényi `G(n, p)` across a sweep of `n` and `p`. |
-| 2 | Which evaluation-function weights play best? | Round-robin tournament of 5 weight configurations on random graphs. |
+| 2 | Which evaluation-function weights play best? | Round-robin comparison of 7 hand-set weight configurations on random graphs. |
 | 3 | Does the AI agree with theory? | Exact minimax winner vs Sprague–Grundy prediction on paths `P_n` and cycles `C_n`. |
-| 4 | How close does optimal play get to the maximum independent set? | Compare the played stable-set size to the exact MIS. |
-| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Brute force (`fork_grundy.py`, ≤ F_30) and a fast Sprague–Grundy recurrence (`fork_grundy_fast.py`, to F_500+). The recurrence is validated to match brute force exactly on F_3–F_30, then shows the sequence is **eventually periodic with period 34** (so P2 wins recur indefinitely, e.g. F_34, F_39, …). |
+| 4 | How close does depth-3 play get to the maximum independent set? | Compare the played stable-set size to the exact MIS. |
+| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Brute force (`fork_grundy.py`, ≤ F_30) and a fast Sprague–Grundy recurrence (`fork_grundy_fast.py`, tested to F_2000). The recurrence matches brute force on F_3–F_30 and computationally reproduces a period-34 pattern from F_313 through F_2000. A subsequent literature comparison identified [Songsuwan's Theorem 3.2](https://doi.org/10.48550/arXiv.2512.24221) for an isomorphic graph family, establishing indefinite period-34 behaviour after the index shift `k = s + 2`. |
 
-Experiment 3 is the **correctness anchor**: agreement between the AI's exact
-solver and the independently computed Grundy values validates the engine and
-search.
+Experiment 3 is a **small-instance correctness check**: agreement between the
+AI's exact solver and the independently computed Grundy values validates the
+engine and full-depth search on P_3–P_12 and C_3–C_12.
 
 ## Using the library directly
 
