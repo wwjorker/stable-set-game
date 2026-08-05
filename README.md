@@ -72,6 +72,7 @@ python -m stable_set_game.gui
 
 ```bash
 python experiments/run_experiments.py     # Experiments 1–4 → experiments/results/
+python experiments/run_exp1_p05_fine_grid.py  # Supplementary p=0.5 sweep, n=10..20
 python experiments/fork_grundy.py         # Exact Grundy values for fork graphs
 ```
 
