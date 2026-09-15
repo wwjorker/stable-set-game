@@ -8,7 +8,6 @@ import networkx as nx
 from stable_set_game.engine import StableSetGame
 from stable_set_game.evaluation import (
     SCORE_LOSS,
-    SCORE_WIN,
     WeightedEvaluator,
     feature_move_difference,
     feature_blocked_ratio,

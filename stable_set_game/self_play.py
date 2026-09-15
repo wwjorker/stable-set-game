@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import networkx as nx
 
@@ -225,9 +225,8 @@ class TournamentResult:
     def win_rate(self, player_name: str) -> float:
         """Win rate for a player across games they participated in.
 
-        Note: divides by the player's own games_played (not the total
-        tournament games), so in a round-robin with k players the
-        maximum possible rate is 1.0, not 1/k.
+        The denominator is the number of games this player took part in,
+        not the total number of games in the tournament.
         """
         if player_name not in self.leaderboard:
             raise ValueError(f"Unknown player '{player_name}'.")

@@ -7,8 +7,8 @@ favourable the current position is for the maximising player.
 
 Each feature function takes a game state and returns a numeric score.
 The ``WeightedEvaluator`` combines several features via a linear
-combination with configurable weights — this is the parameterisation
-that the self-play framework will later optimise.
+combination with configurable weights; the self-play framework is used
+to compare different weight settings.
 
 Convention:
     - Positive scores favour the **maximising** player (the player whose
@@ -147,10 +147,8 @@ class WeightedEvaluator:
         """Evaluate the game state.
 
         Returns:
-            +∞  if the current player has already won (opponent cannot move
-            and it is opponent's turn — but this shouldn't happen mid-call).
-            −∞  if the current player has no legal moves (they lose).
-            Otherwise, the weighted sum of active features.
+            ``SCORE_LOSS`` (−∞) if the current player has no legal moves;
+            otherwise the weighted sum of the active features.
         """
         # Terminal check
         if game.is_game_over():

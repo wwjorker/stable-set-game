@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Optional
 
 from stable_set_game.engine import StableSetGame
 from stable_set_game.evaluation import (

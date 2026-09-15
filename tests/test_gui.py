@@ -15,7 +15,6 @@ import pytest
 import networkx as nx
 
 from stable_set_game.ai import AIPlayer
-from stable_set_game.engine import StableSetGame
 from stable_set_game.gui import (
     GameConfig,
     GameGUI,

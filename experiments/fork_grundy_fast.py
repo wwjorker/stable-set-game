@@ -18,8 +18,8 @@ We parametrise a fork by its **tail length** ``t`` = number of path vertices
 below the branch, so ``F_k = Fork_{t = k-2}``.  ``Fork_t`` has ``t + 3``
 vertices (branch + 2 prongs + a tail path of t vertices).
 
-Key insight (Node Kayles = closed-neighbourhood deletion)
----------------------------------------------------------
+Decomposition
+-------------
 Selecting a vertex v deletes its closed neighbourhood N[v] = {v} ∪ neighbours.
 The remaining graph splits into connected components whose Grundy values XOR
 together.  So we only need Grundy values of the pieces produced by each move:
@@ -44,8 +44,8 @@ the Grundy value of the resulting position:
 
     Fork(t) = mex over all of the above.
 
-Base cases fall out naturally: Fork_0 is the claw-less stub P_3 (G = 2),
-Fork_1 = F_3 (G = 1).
+Base cases: Fork_0 is the branch with its two prongs, i.e. the path P_3
+(G = 2), and Fork_1 = F_3 (G = 1).
 """
 
 from __future__ import annotations
@@ -322,7 +322,7 @@ def main() -> None:
     print(f"Fast recurrence Grundy computation for fork graphs F_3 … F_{MAX_K}")
     print("=" * 70)
 
-    # --- Step 1: path Grundy values + sanity check --------------------
+    # --- Path Grundy values and sanity check --------------------------
     P = compute_path_grundy(max_m)
     path_zeros = [m for m in range(35) if P[m] == 0]
     print(f"\nPath Grundy zeros (m ≤ 34): {path_zeros}")
@@ -332,17 +332,16 @@ def main() -> None:
     )
     print("Path recurrence sanity check: OK")
 
-    # --- Step 2: fork Grundy values -----------------------------------
+    # --- Fork Grundy values -------------------------------------------
     Fork = compute_fork_grundy(max_t, P)
 
-    # --- Step 3: CRITICAL validation against brute force --------------
+    # --- Validation against brute force -------------------------------
     print()
     if not validate_against_csv(P, Fork):
-        print("\nABORTING: recurrence disagrees with brute force. "
-              "The decomposition is wrong — debug before trusting results.")
+        print("\nRecurrence disagrees with brute force; aborting.")
         sys.exit(1)
 
-    # --- Build rows + winning moves (Step 6) --------------------------
+    # --- Build rows and winning first moves ---------------------------
     rows: List[Dict] = []
     ks: List[int] = []
     grundy: List[int] = []
@@ -360,27 +359,26 @@ def main() -> None:
         ks.append(k)
         grundy.append(g)
 
-    # --- Step 5: save outputs -----------------------------------------
+    # --- Save outputs -------------------------------------------------
     print()
     _save_csv(rows)
     # Chart only up to CHART_MAX_K — 2000 points would be unreadable.
     chart_ks = [k for k in ks if k <= CHART_MAX_K]
     _chart_extended(chart_ks, grundy[: len(chart_ks)])
 
-    # --- Step 4: report -----------------------------------------------
+    # --- Report -------------------------------------------------------
     p2_wins = [k for k, g in zip(ks, grundy) if g == 0]
     print("\n" + "-" * 70)
-    print("FINDINGS")
+    print("Summary")
     print("-" * 70)
     print(f"Player 2 (G = 0) wins on F_k for k = "
           f"{p2_wins if p2_wins else '(none)'}")
     after_20 = [k for k in p2_wins if k > 20]
     if after_20:
-        print(f"P2 wins DO recur after k = 20, at: {after_20}")
+        print(f"P2 wins also occur after k = 20, at: {after_20}")
     else:
-        print(f"P2 NEVER wins again after k = 20 "
-              f"(last P2 win: F_{max(p2_wins)}). "
-              f"From F_21 to F_{MAX_K}, player 1 always wins.")
+        print(f"No P2 wins after k = 20 "
+              f"(last P2 win: F_{max(p2_wins)}).")
 
     grundy_period = find_eventual_period(grundy)
     winner_period = find_eventual_period([1 if g > 0 else 0 for g in grundy])
@@ -391,7 +389,7 @@ def main() -> None:
               f"from about k = {ks[start]}.")
     else:
         print("No eventual period detected in the Grundy sequence "
-              f"(checked up to period 80).")
+              "(checked up to period 80).")
     if winner_period:
         p, start = winner_period
         print(f"Winner (N/P) pattern becomes periodic: period {p}, "
@@ -399,7 +397,7 @@ def main() -> None:
     else:
         print("No eventual period detected in the winner pattern.")
 
-    # A couple of concrete winning-move examples for the supervisor.
+    # Sample winning first moves for a few sizes.
     print("\nExample winning first moves (vertex labels in fork_graph(k)):")
     for k in [7, 9, 11, 16, 100, 250]:
         if k <= MAX_K:

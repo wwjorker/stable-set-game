@@ -8,6 +8,9 @@ combinatorial game theory research:
 - Cycle graph C_n
 - Erdős–Rényi random graph  G(n, p)
 - Random regular graph  G(n, d)
+- Complete graph  K_n
+- Fork graph  F_n
+- Star graph  S_n
 """
 
 from __future__ import annotations

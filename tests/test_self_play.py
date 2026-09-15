@@ -9,7 +9,6 @@ from stable_set_game.ai import AIPlayer
 from stable_set_game.evaluation import WeightedEvaluator
 from stable_set_game.self_play import (
     MatchResult,
-    SeriesResult,
     TournamentResult,
     play_match,
     play_series,

@@ -3,7 +3,7 @@ Exhaustive Sprague–Grundy computation for fork graphs.
 
 A fork graph F_n is the path P_n with one extra vertex (labelled n) attached
 to vertex n-2.  This script computes the exact Grundy value g(F_n) for
-n = 3 … 20 by exploring the *entire* game tree via memoised recursion on
+n = 3 … 30 by exploring the *entire* game tree via memoised recursion on
 game states (no AI / minimax involved).
 
 Definitions
@@ -25,8 +25,9 @@ player wins (N-position) and g(F_n) = 0 means the second player wins
 
 Output
 ------
-Prints a table of g(F_n) for n = 3 … 20, the first-player winner, and any
-periodic patterns detected in the sequence.
+Prints a table of g(F_n) for n = 3 … 30, the first-player winner, and any
+periodic patterns detected in the sequence.  Results are also saved to
+``experiments/results/fork_grundy.csv`` and ``fork_grundy.png``.
 """
 
 from __future__ import annotations
@@ -299,7 +300,8 @@ def main() -> None:
     zeros = [n for n, v in zip(range(3, last_n + 1), values) if v == 0]
     print("  " + (", ".join(f"F_{n}" for n in zeros) if zeros else "(none)"))
 
-    # Highlight whether the period-5 winner pattern persists.
+    # The early values suggest a period-5 winner pattern from n = 11;
+    # check whether it persists over the computed range.
     if len(values) >= 10:
         winner_bits = [1 if v > 0 else 0 for v in values]
         tail_start = 8  # corresponds to n = 11 (index 8 in n=3.. seq)

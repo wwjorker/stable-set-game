@@ -57,7 +57,7 @@ from stable_set_game.generators import (
     erdos_renyi_graph,
     path_graph,
 )
-from stable_set_game.self_play import play_match, run_tournament
+from stable_set_game.self_play import play_match
 
 
 # ======================================================================
@@ -101,7 +101,6 @@ def experiment_1_graph_selection(
 
             for g_idx in range(games_per_cell):
                 graph = erdos_renyi_graph(n, p, seed=g_idx)
-                # Guard against empty graphs (p=0 with no edges still valid)
                 result = play_match(ai1, ai2, graph, graph_info=f"ER(n={n},p={p})")
                 total_moves += result.num_moves
                 if result.winner_name == ai1.name:
@@ -186,9 +185,9 @@ def experiment_2_parameter_tuning(
     Each of the ``games_per_pair`` games uses a freshly sampled
     G(n, p) with a different seed, so that the ranking reflects the
     configs' performance across the **distribution** rather than on
-    a single (deterministic) sample.  With deterministic AIs on a
-    fixed graph the outcome is fully determined by who goes first,
-    which leaves every pair tied at 50/50 and is uninformative.
+    a single (deterministic) sample.  Two deterministic AIs replaying
+    one fixed graph in the same order would always produce the same
+    result, so repeated games on a single graph add no information.
     """
     print("\n" + "=" * 60)
     print(f"Experiment 2: Self-play Parameter Tuning on G({n}, {p})")
@@ -506,10 +505,9 @@ def experiment_4_stable_set_size(
     vertices), compute the exact MIS via complement-clique enumeration,
     and report the ratio game_size / mis_size in [0, 1].
 
-    A ratio of 1.0 means optimal play terminated on a *maximum*
-    independent set; lower ratios indicate sub-maximal terminal sets —
-    which are still maximal (no vertex can be added) but smaller than
-    the global MIS.
+    A ratio of 1.0 means the game terminated on a *maximum* independent
+    set; lower ratios indicate terminal sets that are maximal (no vertex
+    can be added) but smaller than the global MIS.
     """
     print("\n" + "=" * 60)
     print("Experiment 4: Stable Set Size vs Maximum Independent Set")

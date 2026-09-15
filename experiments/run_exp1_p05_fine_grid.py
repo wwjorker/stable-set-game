@@ -1,9 +1,9 @@
 """Supplementary Experiment 1 sweep for the dense ``p = 0.5`` case.
 
-This script preserves the original Experiment 1 outputs.  It repeats the
-published settings for every integer graph size from 10 through 20, and saves
-both game-level observations and an aggregated length distribution under new
-filenames in ``experiments/results``.
+Uses the Experiment 1 settings (two depth-3 AIs, seeds 0-99) for every
+integer graph size from 10 through 20, and saves game-level observations and
+the game-length distribution to separate files in ``experiments/results`` so
+the Experiment 1 outputs are not overwritten.
 """
 
 from __future__ import annotations

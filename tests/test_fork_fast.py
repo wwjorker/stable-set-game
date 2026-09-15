@@ -48,7 +48,7 @@ class TestPathGrundy:
 
 
 # ======================================================================
-# CRITICAL: recurrence vs brute force
+# Recurrence vs brute force
 # ======================================================================
 
 class TestForkRecurrenceMatchesBruteForce:

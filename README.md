@@ -29,6 +29,7 @@ stable_set_game/        Core library
 
 experiments/            Dissertation experiments
 ├── run_experiments.py  Experiments 1–4 (data + charts to results/)
+├── run_exp1_p05_fine_grid.py  Supplementary p = 0.5 sweep for Experiment 1
 ├── fork_grundy.py      Brute-force Grundy analysis of fork graphs F_n (≤ F_30)
 ├── fork_grundy_fast.py Recurrence-based Grundy values for F_n (tested to F_2000)
 └── results/            Generated CSV data and PNG charts
@@ -90,7 +91,7 @@ pytest
 | 2 | Which evaluation-function weights play best? | Round-robin comparison of 7 hand-set weight configurations on random graphs. |
 | 3 | Does the AI agree with theory? | Exact minimax winner vs Sprague–Grundy prediction on paths `P_n` and cycles `C_n`. |
 | 4 | How close does depth-3 play get to the maximum independent set? | Compare the played stable-set size to the exact MIS. |
-| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Brute force (`fork_grundy.py`, ≤ F_30) and a fast Sprague–Grundy recurrence (`fork_grundy_fast.py`, tested to F_2000). The recurrence matches brute force on F_3–F_30 and computationally reproduces a period-34 pattern from F_313 through F_2000. A subsequent literature comparison identified [Songsuwan's Theorem 3.2](https://doi.org/10.48550/arXiv.2512.24221) for an isomorphic graph family, establishing indefinite period-34 behaviour after the index shift `k = s + 2`. |
+| Fork | What are the Grundy values of the fork graphs `F_n`, and are they periodic? | Brute force (`fork_grundy.py`, ≤ F_30) and a fast Sprague–Grundy recurrence (`fork_grundy_fast.py`, tested to F_2000). The recurrence matches brute force on F_3–F_30 and computationally reproduces a period-34 pattern from F_313 through F_2000. A subsequent literature comparison identified Theorem 3.2 of [Songsuwan's arXiv preprint](https://doi.org/10.48550/arXiv.2512.24221) for an isomorphic graph family, establishing indefinite period-34 behaviour after the index shift `k = s + 2`. |
 
 Experiment 3 is a **small-instance correctness check**: agreement between the
 AI's exact solver and the independently computed Grundy values validates the

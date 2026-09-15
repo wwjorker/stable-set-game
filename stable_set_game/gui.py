@@ -29,11 +29,9 @@ Usage
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.backend_bases import MouseEvent
@@ -42,7 +40,6 @@ import networkx as nx
 
 from stable_set_game.ai import AIPlayer
 from stable_set_game.engine import StableSetGame
-from stable_set_game.evaluation import WeightedEvaluator
 
 
 # ======================================================================
@@ -577,7 +574,7 @@ class GameGUI:
 
 
 # ======================================================================
-# Graphical launcher (python -m stable_set_game)
+# Setup screen (python -m stable_set_game.gui)
 # ======================================================================
 
 class GameLauncher:

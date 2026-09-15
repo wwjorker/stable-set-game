@@ -1,4 +1,4 @@
-"""Professional PySide6 desktop interface for the Stable Set Game.
+"""PySide6 desktop interface for the Stable Set Game.
 
 The research engine, AI, graph generators and experiments remain independent
 of this module.  The older Matplotlib interface is still available from
